@@ -16,6 +16,10 @@ concurrency:
 jobs:
   open-pr:
     runs-on: ubuntu-latest
+    env:
+      BRANCH: ${{ github.ref_name }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,49 +27,43 @@ jobs:
           fetch-depth: 0
 
       - name: Garante que develop existe (bootstrap na primeira execução)
-        id: bootstrap
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           if git ls-remote --exit-code --heads origin develop >/dev/null 2>&1; then
             echo "Branch develop já existe."
           else
-            echo "Branch develop não existe, criando a partir do branch padrão do repositório."
-            git fetch origin "${{ github.event.repository.default_branch }}"
-            git checkout -b develop "origin/${{ github.event.repository.default_branch }}"
+            echo "Branch develop não existe, criando a partir de $DEFAULT_BRANCH."
+            git fetch origin "$DEFAULT_BRANCH"
+            git checkout -b develop "origin/$DEFAULT_BRANCH"
             git push origin develop
           fi
 
       - name: Gera descrição do PR a partir dos commits
-        id: body
         run: |
           git fetch origin develop
           {
-            echo "body<<PRBODY_EOF"
             echo "## O que este PR adiciona"
             echo ""
             git log "origin/develop..HEAD" --pretty='- %s (%h)' --no-merges
             echo ""
             echo "---"
-            echo "Aberto automaticamente pelo workflow \`feature-to-develop\` a partir de \`${{ github.ref_name }}\`."
-            echo "PRBODY_EOF"
-          } >> "$GITHUB_OUTPUT"
+            printf 'Aberto automaticamente pelo workflow `feature-to-develop` a partir de `%s`.\n' "$BRANCH"
+          } > pr_body.md
 
       - name: Abre ou atualiza o PR para develop
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          BRANCH="${{ github.ref_name }}"
           EXISTING=$(gh pr list --base develop --head "$BRANCH" --state open --json number --jq '.[0].number')
           if [ -n "$EXISTING" ]; then
             echo "PR #$EXISTING já existe para $BRANCH → develop. Atualizando descrição."
-            gh pr edit "$EXISTING" --body "${{ steps.body.outputs.body }}"
+            gh pr edit "$EXISTING" --body-file pr_body.md
           else
             echo "Criando PR $BRANCH → develop."
+            TITLE=$(git log -1 --pretty=%s)
             gh pr create \
               --base develop \
               --head "$BRANCH" \
-              --title "$(git log -1 --pretty=%s)" \
-              --body "${{ steps.body.outputs.body }}" \
+              --title "$TITLE" \
+              --body-file pr_body.md \
               --reviewer LucasLimaLL
           fi
