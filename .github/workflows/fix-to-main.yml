@@ -1,0 +1,62 @@
+name: Fix → Main PR (hotfix)
+
+# Branches fix/** seguem dois caminhos em paralelo:
+# 1. fix/** -> develop, via feature-to-develop.yml (mesmo pipeline de feature/**)
+# 2. fix/** -> main, via este workflow — para correções urgentes que não podem
+#    esperar o ciclo normal de release. O merge em main continua sempre humano.
+
+on:
+  push:
+    branches:
+      - 'fix/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: fix-to-main-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  open-pr:
+    runs-on: ubuntu-latest
+    env:
+      BRANCH: ${{ github.ref_name }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gera descrição do PR a partir dos commits
+        run: |
+          git fetch origin main
+          {
+            echo "## Hotfix"
+            echo ""
+            git log "origin/main..HEAD" --pretty='- %s (%h)' --no-merges
+            echo ""
+            echo "---"
+            printf 'Aberto automaticamente pelo workflow `Fix → Main PR (hotfix)` a partir de `%s`.\n' "$BRANCH"
+            echo ""
+            echo "Este PR é independente do PR aberto para \`develop\` a partir da mesma branch — os dois precisam ser mergeados."
+          } > pr_body_main.md
+
+      - name: Abre ou atualiza o PR para main
+        run: |
+          EXISTING=$(gh pr list --base main --head "$BRANCH" --state open --json number --jq '.[0].number')
+          if [ -n "$EXISTING" ]; then
+            echo "PR #$EXISTING já existe para $BRANCH → main. Atualizando descrição."
+            gh pr edit "$EXISTING" --body-file pr_body_main.md
+          else
+            echo "Criando PR $BRANCH → main."
+            TITLE="Hotfix: $(git log -1 --pretty=%s)"
+            gh pr create \
+              --base main \
+              --head "$BRANCH" \
+              --title "$TITLE" \
+              --body-file pr_body_main.md \
+              --reviewer LucasLimaLL
+          fi

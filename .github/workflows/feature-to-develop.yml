@@ -1,9 +1,10 @@
-name: Feature → Develop PR
+name: Feature/Fix → Develop PR
 
 on:
   push:
     branches:
       - 'feature/**'
+      - 'fix/**'
 
 permissions:
   contents: write
@@ -48,7 +49,7 @@ jobs:
             git log "origin/develop..HEAD" --pretty='- %s (%h)' --no-merges
             echo ""
             echo "---"
-            printf 'Aberto automaticamente pelo workflow `feature-to-develop` a partir de `%s`.\n' "$BRANCH"
+            printf 'Aberto automaticamente pelo workflow `Feature/Fix → Develop PR` a partir de `%s`.\n' "$BRANCH"
           } > pr_body.md
 
       - name: Abre ou atualiza o PR para develop
