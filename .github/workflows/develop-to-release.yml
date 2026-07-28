@@ -1,0 +1,120 @@
+name: Develop → Release → Main
+
+on:
+  push:
+    branches:
+      - develop
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-develop
+  cancel-in-progress: false
+
+jobs:
+  cut-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: develop
+
+      - name: Configura git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Calcula a próxima versão semântica
+        id: version
+        run: |
+          set -e
+          LAST_TAG=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1 || true)
+
+          if [ -z "$LAST_TAG" ]; then
+            BASE_VERSION="0.0.0"
+            RANGE="HEAD"
+          else
+            BASE_VERSION="${LAST_TAG#v}"
+            RANGE="${LAST_TAG}..HEAD"
+          fi
+
+          COMMITS=$(git log --pretty=format:'%s%n%b' $RANGE)
+
+          if [ -z "$COMMITS" ]; then
+            echo "Nenhum commit novo desde ${LAST_TAG:-o início} — nada para lançar."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Convenção: breaking:/BREAKING CHANGE:/tipo! => major, feat: => minor, fix: (ou default) => patch
+          BUMP="patch"
+          if echo "$COMMITS" | grep -qiE '^(breaking:|BREAKING CHANGE:)|^[a-z]+(\([^)]*\))?!:'; then
+            BUMP="major"
+          elif echo "$COMMITS" | grep -qiE '^feat(\([^)]*\))?:'; then
+            BUMP="minor"
+          elif echo "$COMMITS" | grep -qiE '^fix(\([^)]*\))?:'; then
+            BUMP="patch"
+          fi
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$BASE_VERSION"
+          case "$BUMP" in
+            major) MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR+1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH+1)) ;;
+          esac
+          NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
+          {
+            echo "changelog<<CHANGELOG_EOF"
+            git log --pretty='- %s (%h)' --no-merges $RANGE
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Verifica se a branch de release já existe
+        if: steps.version.outputs.skip != 'true'
+        id: check_release
+        run: |
+          BRANCH="release/${{ steps.version.outputs.new_version }}"
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Cria branch de release e tag
+        if: steps.version.outputs.skip != 'true' && steps.check_release.outputs.exists == 'false'
+        run: |
+          BRANCH="release/${{ steps.version.outputs.new_version }}"
+          git checkout -b "$BRANCH"
+          git tag "${{ steps.version.outputs.new_version }}"
+          git push origin "$BRANCH"
+          git push origin "${{ steps.version.outputs.new_version }}"
+
+      - name: Abre PR de release para main
+        if: steps.version.outputs.skip != 'true' && steps.check_release.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="release/${{ steps.version.outputs.new_version }}"
+          BODY="## Release ${{ steps.version.outputs.new_version }}
+
+          Bump: **${{ steps.version.outputs.bump }}**
+
+          ### Mudanças incluídas
+          ${{ steps.version.outputs.changelog }}
+
+          ---
+          Aberto automaticamente pelo workflow \`develop-to-release\`. Merge nesta PR é sempre humano."
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "Release ${{ steps.version.outputs.new_version }}" \
+            --body "$BODY" \
+            --reviewer LucasLimaLL

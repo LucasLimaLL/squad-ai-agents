@@ -1,0 +1,53 @@
+name: Chore → Feature bridge
+
+# Ponte para branches chore/<description>: o pipeline principal (feature-to-develop.yml)
+# só dispara em push para feature/**. Este workflow espelha chore/<description>
+# para feature/<description> — criando a branch feature correspondente se ela
+# ainda não existir — para que o mesmo push acione o fluxo padrão de PR para develop.
+
+on:
+  push:
+    branches:
+      - 'chore/**'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: chore-to-feature-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mirror-to-feature:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cria ou sincroniza a branch feature correspondente
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          CHORE_BRANCH="${{ github.ref_name }}"
+          DESCRIPTION="${CHORE_BRANCH#chore/}"
+          FEATURE_BRANCH="feature/${DESCRIPTION}"
+
+          if git ls-remote --exit-code --heads origin "$FEATURE_BRANCH" >/dev/null 2>&1; then
+            git fetch origin "$FEATURE_BRANCH"
+            git checkout -B "$FEATURE_BRANCH" "origin/$FEATURE_BRANCH"
+            if git merge --ff-only "origin/$CHORE_BRANCH"; then
+              echo "Branch $FEATURE_BRANCH já existia — avançada (fast-forward) até $CHORE_BRANCH."
+              git push origin "$FEATURE_BRANCH"
+            else
+              echo "Branch $FEATURE_BRANCH já existe e divergiu de $CHORE_BRANCH (não é fast-forward)."
+              echo "Não mexendo automaticamente — resolva manualmente se precisar sincronizar."
+            fi
+          else
+            echo "Branch $FEATURE_BRANCH não existe. Criando a partir de $CHORE_BRANCH."
+            git checkout -b "$FEATURE_BRANCH"
+            git push origin "$FEATURE_BRANCH"
+          fi
