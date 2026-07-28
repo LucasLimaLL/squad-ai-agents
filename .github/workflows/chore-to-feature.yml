@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: read
 
 concurrency:
   group: chore-to-feature-${{ github.ref }}
@@ -22,6 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CHORE_BRANCH: ${{ github.ref_name }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,14 +40,22 @@ jobs:
           FEATURE_BRANCH="feature/${DESCRIPTION}"
 
           if git ls-remote --exit-code --heads origin "$FEATURE_BRANCH" >/dev/null 2>&1; then
-            git fetch origin "$FEATURE_BRANCH"
-            git checkout -B "$FEATURE_BRANCH" "origin/$FEATURE_BRANCH"
-            if git merge --ff-only "origin/$CHORE_BRANCH"; then
-              echo "Branch $FEATURE_BRANCH já existia — avançada (fast-forward) até $CHORE_BRANCH."
-              git push origin "$FEATURE_BRANCH"
+            OPEN_PR=$(gh pr list --base develop --head "$FEATURE_BRANCH" --state open --json number --jq '.[0].number')
+            if [ -n "$OPEN_PR" ]; then
+              echo "Branch $FEATURE_BRANCH já existe e tem PR #$OPEN_PR aberto para develop — sincronizando (fast-forward)."
+              git fetch origin "$FEATURE_BRANCH"
+              git checkout -B "$FEATURE_BRANCH" "origin/$FEATURE_BRANCH"
+              if git merge --ff-only "origin/$CHORE_BRANCH"; then
+                git push origin "$FEATURE_BRANCH"
+              else
+                echo "$FEATURE_BRANCH divergiu de $CHORE_BRANCH (não é fast-forward)."
+                echo "Não mexendo automaticamente — resolva manualmente se precisar sincronizar."
+              fi
             else
-              echo "Branch $FEATURE_BRANCH já existe e divergiu de $CHORE_BRANCH (não é fast-forward)."
-              echo "Não mexendo automaticamente — resolva manualmente se precisar sincronizar."
+              echo "Branch $FEATURE_BRANCH existe mas não tem PR aberto (fechado sem merge, ou nunca aberto)."
+              echo "Recriando $FEATURE_BRANCH a partir de $CHORE_BRANCH para que um PR novo seja aberto."
+              git checkout -B "$FEATURE_BRANCH"
+              git push --force-with-lease origin "$FEATURE_BRANCH"
             fi
           else
             echo "Branch $FEATURE_BRANCH não existe. Criando a partir de $CHORE_BRANCH."
