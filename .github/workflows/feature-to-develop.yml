@@ -54,7 +54,7 @@ jobs:
 
       - name: Abre ou atualiza o PR para develop
         run: |
-          EXISTING=$(gh pr list --base develop --head "$BRANCH" --state open --json number --jq '.[0].number')
+          EXISTING=$(gh pr list --base develop --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
           if [ -n "$EXISTING" ]; then
             echo "PR #$EXISTING já existe para $BRANCH → develop. Atualizando descrição."
             gh pr edit "$EXISTING" --body-file pr_body.md
