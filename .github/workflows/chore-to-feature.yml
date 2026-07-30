@@ -1,0 +1,64 @@
+name: Chore → Feature bridge
+
+# Ponte para branches chore/<description>: o pipeline principal (feature-to-develop.yml)
+# só dispara em push para feature/**. Este workflow espelha chore/<description>
+# para feature/<description> — criando a branch feature correspondente se ela
+# ainda não existir — para que o mesmo push acione o fluxo padrão de PR para develop.
+
+on:
+  push:
+    branches:
+      - 'chore/**'
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: chore-to-feature-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mirror-to-feature:
+    runs-on: ubuntu-latest
+    env:
+      CHORE_BRANCH: ${{ github.ref_name }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cria ou sincroniza a branch feature correspondente
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          DESCRIPTION="${CHORE_BRANCH#chore/}"
+          FEATURE_BRANCH="feature/${DESCRIPTION}"
+
+          if git ls-remote --exit-code --heads origin "$FEATURE_BRANCH" >/dev/null 2>&1; then
+            OPEN_PR=$(gh pr list --base develop --head "$FEATURE_BRANCH" --state open --json number --jq '.[0].number')
+            if [ -n "$OPEN_PR" ]; then
+              echo "Branch $FEATURE_BRANCH já existe e tem PR #$OPEN_PR aberto para develop — sincronizando (fast-forward)."
+              git fetch origin "$FEATURE_BRANCH"
+              git checkout -B "$FEATURE_BRANCH" "origin/$FEATURE_BRANCH"
+              if git merge --ff-only "origin/$CHORE_BRANCH"; then
+                git push origin "$FEATURE_BRANCH"
+              else
+                echo "$FEATURE_BRANCH divergiu de $CHORE_BRANCH (não é fast-forward)."
+                echo "Não mexendo automaticamente — resolva manualmente se precisar sincronizar."
+              fi
+            else
+              echo "Branch $FEATURE_BRANCH existe mas não tem PR aberto (fechado sem merge, ou nunca aberto)."
+              echo "Recriando $FEATURE_BRANCH a partir de $CHORE_BRANCH para que um PR novo seja aberto."
+              git checkout -B "$FEATURE_BRANCH"
+              git push --force-with-lease origin "$FEATURE_BRANCH"
+            fi
+          else
+            echo "Branch $FEATURE_BRANCH não existe. Criando a partir de $CHORE_BRANCH."
+            git checkout -b "$FEATURE_BRANCH"
+            git push origin "$FEATURE_BRANCH"
+          fi

@@ -1,0 +1,70 @@
+name: Feature/Fix → Develop PR
+
+on:
+  push:
+    branches:
+      - 'feature/**'
+      - 'fix/**'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: feature-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  open-pr:
+    runs-on: ubuntu-latest
+    env:
+      BRANCH: ${{ github.ref_name }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Garante que develop existe (bootstrap na primeira execução)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin develop >/dev/null 2>&1; then
+            echo "Branch develop já existe."
+          else
+            echo "Branch develop não existe, criando a partir de $DEFAULT_BRANCH."
+            git fetch origin "$DEFAULT_BRANCH"
+            git checkout -b develop "origin/$DEFAULT_BRANCH"
+            git push origin develop
+          fi
+
+      - name: Gera descrição do PR a partir dos commits
+        run: |
+          git fetch origin develop
+          {
+            echo "## O que este PR adiciona"
+            echo ""
+            git log "origin/develop..HEAD" --pretty='- %s (%h)' --no-merges
+            echo ""
+            echo "---"
+            printf 'Aberto automaticamente pelo workflow `Feature/Fix → Develop PR` a partir de `%s`.\n' "$BRANCH"
+          } > pr_body.md
+
+      - name: Abre ou atualiza o PR para develop
+        run: |
+          EXISTING=$(gh pr list --base develop --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            echo "PR #$EXISTING já existe para $BRANCH → develop. Atualizando descrição."
+            gh pr edit "$EXISTING" --body-file pr_body.md
+          else
+            echo "Criando PR $BRANCH → develop."
+            TITLE=$(git log -1 --pretty=%s)
+            gh pr create \
+              --base develop \
+              --head "$BRANCH" \
+              --title "$TITLE" \
+              --body-file pr_body.md \
+              --reviewer LucasLimaLL
+          fi
