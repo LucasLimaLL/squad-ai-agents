@@ -2,8 +2,8 @@ name: Cleanup de branches após merge
 
 # Não habilite o "Automatically delete head branches" nativo do GitHub neste
 # repositório: ele deletaria a branch assim que a primeira PR fechasse, o que
-# quebra o caso de fix/** (mesma branch alimenta duas PRs em paralelo —
-# fix/xxx -> develop e fix/xxx -> main). Este workflow deleta a branch head
+# quebra o caso de hotfix/** (mesma branch alimenta duas PRs em paralelo —
+# hotfix/xxx -> develop e hotfix/xxx -> main). Este workflow deleta a branch head
 # só depois que TODAS as PRs abertas a partir dela estiverem fechadas, e
 # também limpa a branch chore/** correspondente quando o feature/** espelhado
 # é mergeado.
@@ -38,7 +38,7 @@ jobs:
         run: |
           OTHER_OPEN=$(gh pr list --head "$HEAD_BRANCH" --state open --json number --jq 'length')
           if [ "$OTHER_OPEN" -gt 0 ]; then
-            echo "Branch $HEAD_BRANCH ainda tem $OTHER_OPEN PR(s) aberta(s) (ex.: fix/** com PR paralela para develop e main) — não deletando ainda."
+            echo "Branch $HEAD_BRANCH ainda tem $OTHER_OPEN PR(s) aberta(s) (ex.: hotfix/** com PR paralela para develop e main) — não deletando ainda."
           elif git ls-remote --exit-code --heads origin "$HEAD_BRANCH" >/dev/null 2>&1; then
             git push origin --delete "$HEAD_BRANCH"
             echo "Branch $HEAD_BRANCH deletada."

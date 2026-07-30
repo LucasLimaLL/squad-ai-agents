@@ -1,21 +1,24 @@
-name: Fix → Main PR (hotfix)
+name: Hotfix → Main PR
 
-# Branches fix/** seguem dois caminhos em paralelo:
-# 1. fix/** -> develop, via feature-to-develop.yml (mesmo pipeline de feature/**)
-# 2. fix/** -> main, via este workflow — para correções urgentes que não podem
+# Branches hotfix/** seguem dois caminhos em paralelo:
+# 1. hotfix/** -> develop, via feature-to-develop.yml (mesmo pipeline de feature/** e fix/**)
+# 2. hotfix/** -> main, via este workflow — para correções urgentes que não podem
 #    esperar o ciclo normal de release. O merge em main continua sempre humano.
+#
+# fix/** (sem prefixo hotfix) é uma correção normal: vai só para develop,
+# igual feature/**. hotfix/** é reservado para o caminho duplo urgente.
 
 on:
   push:
     branches:
-      - 'fix/**'
+      - 'hotfix/**'
 
 permissions:
   contents: read
   pull-requests: write
 
 concurrency:
-  group: fix-to-main-${{ github.ref }}
+  group: hotfix-to-main-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -39,7 +42,7 @@ jobs:
             git log "origin/main..HEAD" --pretty='- %s (%h)' --no-merges
             echo ""
             echo "---"
-            printf 'Aberto automaticamente pelo workflow `Fix → Main PR (hotfix)` a partir de `%s`.\n' "$BRANCH"
+            printf 'Aberto automaticamente pelo workflow `Hotfix → Main PR` a partir de `%s`.\n' "$BRANCH"
             echo ""
             echo "Este PR é independente do PR aberto para \`develop\` a partir da mesma branch — os dois precisam ser mergeados."
           } > pr_body_main.md
