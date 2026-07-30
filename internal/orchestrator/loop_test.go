@@ -12,7 +12,6 @@ func TestLoopRunner_NoProgressEscalates(t *testing.T) {
 	}
 
 	result, err := runner.Run(func(cycle int) (string, *ExitResult, error) {
-		// simula o mesmo erro se repetindo -> deve escalar por sem-progresso
 		return "same-build-error", nil, nil
 	})
 	if err != nil {
@@ -67,7 +66,6 @@ func TestFanInGate_HoldsOnPartialFailure(t *testing.T) {
 	gate.SubParts["pagamentos-123-front"].DevSuccess = true
 	gate.SubParts["pagamentos-123-front"].SecurityOK = true
 	gate.SubParts["pagamentos-123-front"].FinopsOK = true
-	// back ainda não terminou
 	if gate.ReadyForIntegratedQA() {
 		t.Fatalf("fan-in não deveria liberar com sub-parte incompleta")
 	}
