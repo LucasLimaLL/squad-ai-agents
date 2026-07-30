@@ -96,9 +96,6 @@ import (
     "github.com/LucasLimaLL/squad-ai-agents/internal/orchestrator"
 )
 
-// runAgent roda o loop completo de um agente/sub-parte até um
-// ExitResult terminal, usando um Harness concreto (ex.: o harness do
-// Dev) e um budget compartilhado entre todas as sub-partes da issue.
 func runAgent(h agents.Harness, budget *orchestrator.CycleBudget, subPartKey, parentIssue, subIssue string) (orchestrator.ExitResult, error) {
     runner := &orchestrator.AgentLoopRunner{
         AgentSubPartKey: subPartKey,
@@ -135,11 +132,7 @@ func runAgent(h agents.Harness, budget *orchestrator.CycleBudget, subPartKey, pa
 }
 
 func main() {
-    // budget agregado, compartilhado por todas as sub-partes da issue
     budget := orchestrator.NewCycleBudget("pagamentos", "pagamentos-123", 20)
-
-    // var h agents.Harness = dev.NewHarness(...) // implementação concreta do agente
-    // result, err := runAgent(h, budget, "dev:pagamentos-123-front", "pagamentos-123", "pagamentos-123-front")
 
     _ = budget
 }
@@ -153,14 +146,11 @@ gate := orchestrator.NewFanInGate("pagamentos-123", []string{
     "pagamentos-123-back",
 })
 
-// cada sub-parte atualiza seu próprio status conforme os gates concluem
 gate.SubParts["pagamentos-123-front"].DevSuccess = true
 gate.SubParts["pagamentos-123-front"].SecurityOK = true
 gate.SubParts["pagamentos-123-front"].FinopsOK = true
 
-if gate.ReadyForIntegratedQA() {
-    // dispara o QA integrado só quando TODAS as sub-partes estiverem prontas
-}
+gate.ReadyForIntegratedQA()
 ```
 
 ## Fluxo de branches
