@@ -1,6 +1,3 @@
-// Package sre implementa o Harness do agente SRE: revisa prontidão
-// operacional (observabilidade, rollback, dependências de infra) da
-// sub-parte.
 package sre
 
 import (
@@ -10,9 +7,6 @@ import (
 
 var _ agents.Harness = (*Harness)(nil)
 
-// Harness é o esqueleto do agente SRE: Plan/Act/Observe determinísticos,
-// sem chamar um motor de IA ainda. Categoria de escalação:
-// "operational_item_unresolved".
 type Harness struct{}
 
 func New() *Harness { return &Harness{} }

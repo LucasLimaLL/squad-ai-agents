@@ -1,6 +1,3 @@
-// Package auditoria implementa o Harness do agente Auditoria: satélite
-// que registra o trilho de auditoria (decisões, escalações) de uma
-// sub-parte. Não bloqueia o pipeline — roda uma única passada por ciclo.
 package auditoria
 
 import (
@@ -10,10 +7,6 @@ import (
 
 var _ agents.Harness = (*Harness)(nil)
 
-// Harness é o esqueleto do agente Auditoria: Plan/Act/Observe
-// determinísticos, sem chamar um motor de IA ainda. Leitura cross-módulo
-// completa (exceção documentada em internal/agents.ReadScope, junto com
-// Architect).
 type Harness struct{}
 
 func New() *Harness { return &Harness{} }

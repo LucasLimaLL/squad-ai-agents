@@ -1,5 +1,3 @@
-// Package pm implementa o Harness do agente PM: traduz o escopo do
-// Analista em critérios de aceite testáveis.
 package pm
 
 import (
@@ -9,9 +7,6 @@ import (
 
 var _ agents.Harness = (*Harness)(nil)
 
-// Harness é o esqueleto do agente PM: Plan/Act/Observe determinísticos,
-// sem chamar um motor de IA ainda. Categoria de escalação:
-// "criteria_not_testable".
 type Harness struct{}
 
 func New() *Harness { return &Harness{} }

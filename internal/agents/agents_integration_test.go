@@ -17,10 +17,6 @@ import (
 	"github.com/LucasLimaLL/squad-ai-agents/internal/orchestrator"
 )
 
-// TestFanOutFanIn_DevSecurityFinops roda o loop completo (Plan->Act->Observe
-// via agents.Run) para os agentes Dev, Security e Finops, nas duas
-// sub-partes de uma issue fictícia, e confirma que o FanInGate só libera
-// o QA integrado depois que TODAS as sub-partes passaram pelos três.
 func TestFanOutFanIn_DevSecurityFinops(t *testing.T) {
 	const parentIssue = "pagamentos-123"
 	subParts := []string{"pagamentos-123-front", "pagamentos-123-back"}
@@ -74,10 +70,6 @@ func TestFanOutFanIn_DevSecurityFinops(t *testing.T) {
 	}
 }
 
-// TestAllAgents_Config confirma que os 10 agentes existem, cada um com
-// ID único, e que os dois exemplos documentados no core (Security escala
-// imediato em achado crítico; Finops nunca bloqueia sozinho) estão
-// refletidos na config.
 func TestAllAgents_Config(t *testing.T) {
 	harnesses := []agents.Harness{
 		analista.New(),

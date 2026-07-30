@@ -1,7 +1,3 @@
-// Package documentador implementa o Harness do agente Documentador:
-// satélite que gera/atualiza documentação a partir do que foi
-// implementado. Não bloqueia o pipeline — roda uma única passada por
-// ciclo.
 package documentador
 
 import (
@@ -11,10 +7,6 @@ import (
 
 var _ agents.Harness = (*Harness)(nil)
 
-// Harness é o esqueleto do agente Documentador: Plan/Act/Observe
-// determinísticos, sem chamar um motor de IA ainda. Único agente com
-// CrossModuleMode "broad_search" — precisa buscar contexto amplo pra
-// documentar integrações entre módulos.
 type Harness struct{}
 
 func New() *Harness { return &Harness{} }

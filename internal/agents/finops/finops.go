@@ -1,6 +1,3 @@
-// Package finops implementa o Harness do agente Finops: verifica custo
-// estimado da sub-parte contra o threshold configurado. Nunca escala
-// sozinho — estourar o threshold é sempre decisão humana explícita.
 package finops
 
 import (
@@ -10,9 +7,6 @@ import (
 
 var _ agents.Harness = (*Harness)(nil)
 
-// Harness é o esqueleto do agente Finops: Plan/Act/Observe
-// determinísticos, sem chamar um motor de IA ainda. Sem categoria de
-// escalação própria — ver NeverBlocksAlone em Config().
 type Harness struct{}
 
 func New() *Harness { return &Harness{} }

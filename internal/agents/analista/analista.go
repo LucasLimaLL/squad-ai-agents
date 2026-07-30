@@ -1,5 +1,3 @@
-// Package analista implementa o Harness do agente Analista: resolve o
-// escopo de negócio de uma issue antes de passar para o PM.
 package analista
 
 import (
@@ -9,9 +7,6 @@ import (
 
 var _ agents.Harness = (*Harness)(nil)
 
-// Harness é o esqueleto do agente Analista: Plan/Act/Observe
-// determinísticos, sem chamar um motor de IA ainda. A categoria de
-// escalação ("scope_unresolved") segue orchestrator.KnownEscalationCategories.
 type Harness struct{}
 
 func New() *Harness { return &Harness{} }

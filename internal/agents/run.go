@@ -2,10 +2,6 @@ package agents
 
 import "github.com/LucasLimaLL/squad-ai-agents/internal/orchestrator"
 
-// Run liga um Harness concreto ao AgentLoopRunner: cada ciclo chama
-// Plan -> Act -> Observe e traduz o resultado para o formato que o
-// runner espera (exit == nil enquanto Observe não retornar um Status
-// terminal).
 func Run(h Harness, budget *orchestrator.CycleBudget, subPartKey, parentIssue, subIssue string) (orchestrator.ExitResult, error) {
 	runner := &orchestrator.AgentLoopRunner{
 		AgentSubPartKey: subPartKey,

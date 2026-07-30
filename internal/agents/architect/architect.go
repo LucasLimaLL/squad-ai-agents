@@ -1,6 +1,3 @@
-// Package architect implementa o Harness do agente Architect: desenha a
-// solução técnica e resolve conflitos entre módulos. Tem leitura
-// cross-módulo completa (exceção documentada em internal/agents.ReadScope).
 package architect
 
 import (
@@ -10,9 +7,6 @@ import (
 
 var _ agents.Harness = (*Harness)(nil)
 
-// Harness é o esqueleto do agente Architect: Plan/Act/Observe
-// determinísticos, sem chamar um motor de IA ainda. Categoria de
-// escalação: "cross_module_conflict_unresolved".
 type Harness struct{}
 
 func New() *Harness { return &Harness{} }

@@ -1,6 +1,3 @@
-// Package security implementa o Harness do agente Security: escaneia a
-// sub-parte em busca de vulnerabilidades. Escala imediatamente em
-// achado crítico (não espera repetição/sem-progresso como os demais).
 package security
 
 import (
@@ -10,9 +7,6 @@ import (
 
 var _ agents.Harness = (*Harness)(nil)
 
-// Harness é o esqueleto do agente Security: Plan/Act/Observe
-// determinísticos, sem chamar um motor de IA ainda. Categorias de
-// escalação: "critical_finding", "recurring_finding".
 type Harness struct{}
 
 func New() *Harness { return &Harness{} }

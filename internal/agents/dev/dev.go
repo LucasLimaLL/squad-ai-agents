@@ -1,5 +1,3 @@
-// Package dev implementa o Harness do agente Dev: implementa e builda
-// uma sub-parte do fan-out (ex: "pagamentos-123-front").
 package dev
 
 import (
@@ -9,11 +7,6 @@ import (
 
 var _ agents.Harness = (*Harness)(nil)
 
-// Harness é o esqueleto do agente Dev: Plan/Act/Observe determinísticos,
-// sem chamar um motor de IA ainda. Categorias de escalação:
-// "no_progress_same_error", "budget_exceeded". O fan-out por sub-parte
-// é responsabilidade de quem chama (uma instância de loop por
-// sub-issue), não do Harness em si.
 type Harness struct{}
 
 func New() *Harness { return &Harness{} }

@@ -1,5 +1,3 @@
-// Package qa implementa o Harness do agente QA: valida critérios de
-// aceite, tanto por sub-parte quanto (após o fan-in) de forma integrada.
 package qa
 
 import (
@@ -9,9 +7,6 @@ import (
 
 var _ agents.Harness = (*Harness)(nil)
 
-// Harness é o esqueleto do agente QA: Plan/Act/Observe determinísticos,
-// sem chamar um motor de IA ainda. Categoria de escalação:
-// "same_criterion_failing_repeatedly".
 type Harness struct{}
 
 func New() *Harness { return &Harness{} }
