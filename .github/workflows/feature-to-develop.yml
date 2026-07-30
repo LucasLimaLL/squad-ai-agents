@@ -1,10 +1,11 @@
-name: Feature/Fix → Develop PR
+name: Feature/Fix/Hotfix → Develop PR
 
 on:
   push:
     branches:
       - 'feature/**'
       - 'fix/**'
+      - 'hotfix/**'
 
 permissions:
   contents: write
